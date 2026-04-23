@@ -1,13 +1,19 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Standalone Stub API",
-    "version": "1.0"
+    "title": "Standalone LOA Stub API",
+    "version": "1.0",
+    "description": "Stub API that simulates a third-party system returning LOA PDF documents."
   },
   "paths": {
     "/lookup": {
       "post": {
-        "summary": "Lookup employee document",
+        "summary": "Lookup LOA document for an employee",
+        "consumes": ["application/json"],
+        "produces": [
+          "application/pdf",
+          "application/json"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -15,10 +21,12 @@
             "required": true,
             "schema": {
               "type": "object",
+              "required": ["id"],
               "properties": {
                 "id": {
                   "type": "string",
-                  "example": "1001"
+                  "example": "1001",
+                  "description": "Employee ID for which the LOA document is requested"
                 }
               }
             }
@@ -26,10 +34,57 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "LOA document returned as PDF",
+            "schema": {
+              "type": "file"
+            },
+            "headers": {
+              "Content-Disposition": {
+                "type": "string",
+                "description": "Attachment filename for the LOA PDF",
+                "example": "attachment; filename=LOA_1001.pdf"
+              },
+              "X-Employee-Id": {
+                "type": "string",
+                "example": "1001"
+              },
+              "X-Document-Type": {
+                "type": "string",
+                "example": "LOA"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request payload",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Field 'id' is required"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not found"
+            "description": "Document not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Document not found"
+                }
+              }
+            }
           }
         }
       }

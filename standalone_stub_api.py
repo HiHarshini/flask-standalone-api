@@ -1,59 +1,74 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request, jsonify, send_file
 from flask_swagger_ui import get_swaggerui_blueprint
 
 app = Flask(__name__)
 
-# ---- HARD-CODED DATA ----
-DATA = {
-    "1001": {
-        "name": "Harshini",
-        "department": "Data Science",
-        "document": "Employee Profile A"
-    },
-    "1002": {
-        "name": "Rahul",
-        "department": "Backend",
-        "document": "Employee Profile B"
-    },
-    "1003": {
-        "name": "Sneha",
-        "department": "AI/ML",
-        "document": "Employee Profile C"
-    }
-}
+DOCUMENTS_DIR = "documents"
 
-# ---- SWAGGER CONFIG ----
+# ---- Swagger ----
 SWAGGER_URL = "/swagger"
 API_URL = "/static/swagger.json"
 
-swagger_blueprint = get_swaggerui_blueprint(
+swagger_bp = get_swaggerui_blueprint(
     SWAGGER_URL,
     API_URL,
-    config={"app_name": "Standalone Stub API"}
+    config={"app_name": "Standalone LOA Stub API"}
 )
-app.register_blueprint(swagger_blueprint, url_prefix=SWAGGER_URL)
+app.register_blueprint(swagger_bp, url_prefix=SWAGGER_URL)
+
+
+def error_response(message, status_code):
+    return jsonify({
+        "status": "error",
+        "message": message
+    }), status_code
+
 
 @app.route("/", methods=["GET"])
-def home():
-    return jsonify({"message": "Standalone Stub API is running"})
+def health():
+    return jsonify({
+        "status": "success",
+        "message": "Stub API is running"
+    })
+
 
 @app.route("/lookup", methods=["POST"])
 def lookup():
+    app.logger.info("Received lookup request")
+
     payload = request.get_json()
 
+    # ---- Strict validation ----
     if not payload or "id" not in payload:
-        return jsonify({"message": "ID is required"}), 400
+        return error_response("Field 'id' is required", 400)
 
-    request_id = payload["id"]
+    if payload["id"] is None or payload["id"] == "":
+        return error_response("Field 'id' must not be empty", 400)
 
-    if request_id in DATA:
-        return jsonify({
-            "status": "success",
-            "message": "Document found",
-            "data": DATA[request_id]
-        })
-    else:
-        return jsonify({"message": "Document not found"}), 404
+    # Normalize ID to string
+    request_id = str(payload["id"])
+
+    file_name = f"LOA_{request_id}.pdf"
+    file_path = os.path.join(DOCUMENTS_DIR, file_name)
+
+    if not os.path.exists(file_path):
+        return error_response("Document not found", 404)
+
+    response = send_file(
+        file_path,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=file_name
+    )
+
+    # ---- Metadata in headers ----
+    response.headers["X-Employee-Id"] = request_id
+    response.headers["X-Document-Type"] = "LOA"
+
+    return response
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(debug=debug)

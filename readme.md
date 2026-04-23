@@ -1,10 +1,33 @@
-Commands that need to be executed --
+# Standalone LOA Stub API
 
---> Set the execution to write directory and folder
---> py -m venv .venv
---> .venv\Scripts\activate
---> py -m pip install flask
--->  py standalone_stub_api.py
---> Before running the file do create static folder - swagger.json file because that helps you to read file from the browser , describes the API and ONLY read files that the server exposes publicly.
+This project is a Flask-based stub API that simulates a third‑party system
+returning Letter of Authorization (LOA) documents as PDF files.
 
---> After executing file a url occurs click on url and it opens browser write '/swagger' inorder to see the output."# flask-standalone-api" 
+## Features
+- Returns actual PDF documents
+- Mimics real document APIs using Content-Disposition headers
+- Strict request validation
+- Swagger UI for API exploration
+
+
+## Setup
+py -m venv venv
+venv\Scripts\activate
+py -m pip install -r requirements.txt
+
+## Run
+py standalone_stub_api.py
+
+## Endpoint
+POST /lookup
+Request:
+{
+  "id": 1001
+}
+
+Response:
+- 200: PDF file download
+- 400/404: JSON error response
+
+## Swagger
+http://127.0.0.1:5000/swagger
